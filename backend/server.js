@@ -226,6 +226,7 @@ function authenticateToken(req, res, next) {
 const deviceSockets = new Map();
 const parentSockets = new Map();
 const frameLogState = new Map();
+const frameDropLogState = new Map();
 const getParentEmailForDevice = (deviceId) => {
   for (const [email, pairedDeviceId] of pairings.entries()) {
     if (pairedDeviceId === deviceId) return email;
@@ -458,10 +459,22 @@ io.on('connection', (socket) => {
     if (!deviceId || !dataUrl) return;
 
     const parentEmail = getParentEmailForDevice(deviceId);
-    if (!parentEmail) return;
+    if (!parentEmail) {
+      if (!frameDropLogState.has(`${deviceId}:noparent`)) {
+        frameDropLogState.set(`${deviceId}:noparent`, true);
+        console.log(`[frame] drop no paired parent device=${deviceId}`);
+      }
+      return;
+    }
 
     const parentSocket = parentSockets.get(parentEmail);
-    if (!parentSocket) return;
+    if (!parentSocket) {
+      if (!frameDropLogState.has(`${deviceId}:parentoffline`)) {
+        frameDropLogState.set(`${deviceId}:parentoffline`, true);
+        console.log(`[frame] drop parent offline email=${parentEmail} device=${deviceId}`);
+      }
+      return;
+    }
 
     if (!frameLogState.has(deviceId)) {
       frameLogState.set(deviceId, true);
