@@ -1,0 +1,334 @@
+# Build Status - Accountability Screen Check-In
+
+This document tracks the implementation status of all features outlined in plan.txt
+for an accountability program where a user can grant view access to a trusted
+individual for motivational check-ins.
+
+Last Updated: [Current Date]
+
+Terminology
+- "Parent" in component names = accountability partner/viewer
+- "Child" in component names = user device/agent
+
+---
+
+## Overall Progress: ~65% Complete
+
+✅ Fully Functional Components
+🔄 Partially Functional
+❌ Not Implemented
+
+---
+
+## PHASE 1: Foundations
+
+### Backend Server (Node.js)
+✅ Express server setup
+✅ Socket.IO WebSocket server
+✅ CORS configuration
+✅ Authentication endpoints (register/login)
+✅ JWT token generation and validation
+✅ Device registration via WebSocket
+✅ Parent registration via WebSocket
+✅ Device pairing logic
+✅ Stream request signaling
+✅ Stop stream signaling
+✅ Device status tracking (online/offline)
+❌ Database integration (currently in-memory Maps)
+❌ Environment variable configuration file (.env support)
+❌ Error logging system
+❌ Rate limiting
+❌ HTTPS support
+
+### Parent Web App (React)
+✅ React application setup
+✅ Login component with UI
+✅ Registration component with UI
+✅ Dashboard component with UI
+✅ Authentication state management
+✅ JWT token storage (localStorage)
+✅ API client setup (axios)
+✅ Socket.IO client connection
+✅ Device listing display
+✅ Device pairing interface
+✅ Stream request button
+✅ Device status indicators (online/offline)
+❌ WebRTC client implementation
+❌ Video display component
+❌ Recording functionality
+❌ Error handling UI
+❌ Loading states for async operations
+
+### Child Agent (C# .NET)
+✅ Windows Forms application
+✅ System tray icon
+✅ Tray icon status colors (Gray/Green/Orange/Red)
+✅ Context menu (View Status, Generate Pairing Code, Exit)
+✅ Socket.IO client connection
+✅ Device registration with server
+✅ Stream request handling
+✅ Overlay form display ("Parent check-in active")
+✅ Auto-disconnect timer (15 minutes)
+✅ Status display dialog
+✅ Minimize to tray on startup
+✅ Connection status tracking
+❌ Windows Graphics Capture API integration
+❌ Screen capture implementation
+❌ WebRTC peer-to-peer setup
+❌ Video frame encoding/streaming
+❌ Startup integration (registry/Windows service)
+❌ Auto-restart on crash
+
+---
+
+## PHASE 2: Live Viewing
+
+### Screen Capture
+❌ Windows Graphics Capture API wrapper
+❌ Primary display capture
+❌ Frame rate limiting (5-10 FPS)
+❌ Frame encoding (H.264/VP8/VP9)
+❌ Frame metadata (timestamp, resolution)
+
+### WebRTC Streaming
+❌ WebRTC peer connection setup
+❌ ICE candidate exchange via signaling server
+✅ Signaling server ready (Socket.IO)
+❌ Offer/Answer exchange
+❌ MediaStream creation from screen capture
+❌ RTCPeerConnection configuration
+❌ Video track transmission
+❌ Connection state management
+❌ Reconnection logic
+
+### Video Display (Parent App)
+❌ <video> element integration
+❌ WebRTC remote stream handling
+❌ Video playback controls
+❌ Stream quality indicators
+❌ Connection quality monitoring
+❌ Fullscreen mode
+
+---
+
+## PHASE 3: UX & Safety
+
+### Visibility & Transparency
+✅ Overlay indicator on child device ("Parent check-in active")
+✅ Tray icon status changes
+✅ Status display dialog
+❌ Overlay dismissal prevention
+❌ Always-on-top overlay
+✅ Tray icon always visible
+
+### Auto-Disconnect
+✅ 15-minute auto-disconnect timer
+❌ Configurable timeout duration
+❌ Warning notification before disconnect
+❌ Graceful disconnect handling
+
+### Error Handling
+❌ Connection error recovery
+❌ Reconnection logic (exponential backoff)
+❌ Network interruption handling
+❌ Clear error messages to user
+❌ Error logging
+
+---
+
+## PHASE 4: Hardening
+
+### Security
+✅ JWT authentication
+✅ Password hashing (bcrypt)
+✅ Token expiration
+❌ HTTPS/WSS enforcement
+❌ Input validation and sanitization
+❌ SQL injection prevention (when DB added)
+❌ XSS prevention
+❌ CSRF protection
+❌ Rate limiting
+❌ Secure session management
+❌ Binary signing (child agent)
+
+### Permissions
+✅ Parent-only authentication
+✅ Device pairing validation
+❌ Permission revocation UI
+❌ Parent account management
+❌ Pairing code expiration
+
+### Reliability
+❌ Database persistence (replaces in-memory)
+❌ Automatic reconnection
+❌ Health check endpoints
+❌ Connection monitoring
+❌ Graceful shutdown
+❌ Crash recovery
+
+### Logging (Non-Content)
+❌ Connection events logging
+❌ Error logging
+❌ Performance metrics
+❌ Usage statistics (not content)
+❌ Audit trail
+
+---
+
+## Pairing Flow
+
+✅ Child agent displays 6-digit pairing code
+✅ Parent web app pairing interface
+✅ Backend pairing validation
+✅ Device-parent account linking
+❌ Pairing code expiration (5-10 minutes)
+❌ Pairing revocation UI
+❌ Re-pairing workflow
+
+---
+
+## Recording (MVP+ - Not in Scope)
+
+❌ Recording toggle in parent app
+❌ Local recording storage
+❌ Encrypted cloud storage option
+❌ Recording indicator on child device
+❌ Recording duration limits
+❌ Recording management UI
+
+---
+
+## Future Enhancements (Post-MVP)
+
+❌ macOS support
+❌ Multiple children per parent
+❌ Multiple displays support
+❌ Time-boxed viewing sessions
+❌ Usage summaries (non-visual)
+❌ Age-based permission scaling
+❌ Notification system
+❌ Mobile parent app
+
+---
+
+## Critical Path to MVP Completion
+
+To complete the MVP, these items MUST be implemented (in order):
+
+### Priority 1: Screen Capture
+1. ❌ Implement Windows Graphics Capture API in child agent
+   - Requires WinRT interop
+   - Capture primary display
+   - Frame extraction and encoding
+
+### Priority 2: WebRTC Implementation
+2. ❌ Backend signaling (Socket.IO relay)
+   - Relay offer/answer between parent and child
+   - Relay ICE candidates between parent and child
+   - Add logging for signaling flow
+
+3. ❌ Set up WebRTC peer connection (parent side)
+   - Create RTCPeerConnection
+   - Create/handle offer/answer
+   - Handle ICE candidates
+   - Display remote video stream
+
+4. ❌ Set up WebRTC peer connection (child side)
+   - Create RTCPeerConnection
+   - Add video track from screen capture
+   - Create/handle offer/answer
+   - Handle ICE candidates
+
+### Priority 3: Video Display
+5. ❌ Create video display component in parent app
+   - React video element
+   - Stream attachment
+   - Playback controls
+
+### Priority 4: Polish
+6. ❌ Error handling for WebRTC connection failures
+7. ❌ Connection quality indicators
+8. ❌ Graceful disconnect handling
+
+---
+
+## Known Issues / Technical Debt
+
+1. **In-Memory Storage**: Backend uses Maps - will lose data on restart
+2. **No HTTPS**: All connections are HTTP (security risk)
+3. **Socket.IO Version Mismatch**: C# client may need version adjustment
+4. **Screen Capture Placeholder**: Currently just logs a message
+5. **No Video Display**: Parent app shows alert instead of video
+6. **No Error Recovery**: Connections don't automatically reconnect
+7. **Hardcoded URLs**: Server URL hardcoded in child agent
+8. **No Startup Integration**: Child agent doesn't auto-start on boot
+
+---
+
+## Dependencies Status
+
+### Backend
+✅ express - Installed
+✅ socket.io - Installed
+✅ bcrypt - Installed
+✅ jsonwebtoken - Installed
+✅ cors - Installed
+
+### Parent App
+✅ react - Installed
+✅ react-dom - Installed
+✅ react-scripts - Installed
+✅ socket.io-client - Installed
+✅ axios - Installed
+❌ WebRTC libraries (may need adapter.js)
+
+### Child Agent
+✅ .NET 8.0 SDK - Required
+✅ SocketIOClient - In package reference (needs verification)
+❌ Windows Runtime APIs - Needed for screen capture
+❌ WebRTC libraries for .NET - Needed for streaming
+
+---
+
+## Testing Status
+
+❌ Unit tests
+❌ Integration tests
+❌ End-to-end tests
+❌ Manual testing checklist
+❌ Performance testing
+❌ Security testing
+
+---
+
+## Documentation Status
+
+✅ README.md - Basic setup instructions
+✅ plan.txt - Original requirements
+✅ Build.txt - This file
+❌ API documentation
+❌ Deployment guide
+❌ User manual
+❌ Developer guide
+
+---
+
+## Estimated Completion Time
+
+**MVP (Critical Path)**: ~2-3 weeks
+- Screen Capture: 3-5 days
+- WebRTC Implementation: 5-7 days
+- Testing & Polish: 3-5 days
+
+**Full MVP**: ~4-6 weeks
+- Add all Phase 3 & 4 items
+
+---
+
+## Notes
+
+- The foundation is solid (~65% complete)
+- Core infrastructure (auth, pairing, signaling) is fully functional
+- Main remaining work: Screen capture + WebRTC video streaming
+- Architecture is correct, just needs implementation of video layer
+

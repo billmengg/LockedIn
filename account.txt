@@ -1,0 +1,5 @@
+# One account per line: username_or_email:password
+# Example:
+# parent@example.com:MyStrongPassword123
+# william:AnotherStrongPassword
+billmeng:admintest

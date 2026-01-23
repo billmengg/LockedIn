@@ -1,0 +1,61 @@
+Render Setup (Backend 24/7)
+
+Goal
+Deploy the Node backend so it stays online 24/7.
+
+Requirements
+- A Git repo for this project (GitHub recommended)
+- Render account
+
+Step-by-step
+1) Push to GitHub
+   - Create a GitHub repo and push this project.
+   - The backend lives in the `backend` folder.
+
+2) Create a Web Service on Render
+   - Go to https://render.com → Dashboard → New + → Web Service.
+   - Connect your GitHub repo and select the repo.
+
+3) Configure the service
+   - Name: accountability-backend (or anything you want)
+   - Region: closest to you
+   - Branch: main (or your default)
+   - Root Directory: backend
+   - Build Command: npm install
+   - Start Command: node server.js
+
+4) Set environment variables
+   - JWT_SECRET: set a strong random string
+   - PORT: leave blank (Render injects PORT automatically)
+
+5) Deploy
+   - Click Create Web Service.
+   - Wait for the build to finish.
+   - Your backend URL will look like:
+     https://your-service-name.onrender.com
+
+6) Test the backend
+   - Visit the URL in a browser.
+   - You should see:
+     {"message":"Accountability Backend API","status":"running","version":"1.0.0"}
+
+7) Update your apps to use the new backend URL
+   - Child agent: set SERVER_URL to the Render URL
+   - Parent app: update its API/base URL to the Render URL
+
+Notes about persistence
+- Render’s filesystem resets on each deploy.
+- Right now the backend stores data in:
+  - account.txt (login)
+  - backend-data.json (pairings/devices)
+- On Render, these files will reset to the repo version after a redeploy.
+- If you want true persistence, I can update the backend to read/write
+  to a mounted disk path (Render “Persistent Disk”).
+
+Optional: Add a persistent disk (if you want data to survive deploys)
+- In Render, open the service → Disks → Add Disk.
+- Mount path example: /var/data
+- Then I can update the backend to store:
+  - /var/data/account.txt
+  - /var/data/backend-data.json
+
