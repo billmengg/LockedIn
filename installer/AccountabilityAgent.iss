@@ -1,6 +1,6 @@
 [Setup]
 AppName=Accountability Agent
-AppVersion=1.0.0
+AppVersion=1.0.1
 DefaultDirName={pf}\AccountabilityAgent
 DefaultGroupName=Accountability Agent
 OutputDir=..\installer\out
