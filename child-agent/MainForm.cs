@@ -28,7 +28,7 @@ namespace AccountabilityAgent
         private WebRtcService? webRtcService;
         private int _webrtcFrameCounter = 0;
         private bool socketFrameFallbackEnabled = true;
-        private string serverUrl = "http://localhost:5000";
+        private string serverUrl = "http://141.148.184.72:5000";
 
         public MainForm(bool minimized)
         {
@@ -60,7 +60,7 @@ namespace AccountabilityAgent
                 }
                 else
                 {
-                    serverUrl = "http://localhost:5000";
+                    serverUrl = "http://141.148.184.72:5000";
                     File.WriteAllText(serverUrlFile, serverUrl);
                 }
                 Console.WriteLine($"Server URL: {serverUrl}");

@@ -17,9 +17,13 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
-// Root route - API status
-app.get('/', (req, res) => {
-  res.json({ 
+
+const buildPath = path.join(__dirname, '..', 'parent-app', 'build');
+const hasFrontendBuild = fs.existsSync(buildPath);
+
+// API status
+app.get('/api/status', (req, res) => {
+  res.json({
     message: 'Accountability Backend API',
     status: 'running',
     version: '1.0.0'
@@ -117,6 +121,29 @@ app.post('/api/auth/login', async (req, res) => {
   const token = jwt.sign({ email: identifier }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, email: identifier });
 });
+
+// Serve parent app if a production build exists
+if (hasFrontendBuild) {
+  app.use(express.static(buildPath));
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Accountability Backend API',
+      status: 'running',
+      version: '1.0.0',
+      note: 'Build the parent app (parent-app/build) to serve the UI here.'
+    });
+  });
+}
 
 app.post('/api/pair', authenticateToken, (req, res) => {
   const { pairingCode } = req.body;

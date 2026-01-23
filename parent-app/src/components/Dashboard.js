@@ -7,7 +7,7 @@ import VideoStream from './VideoStream';
 import { createPeerConnection, safeClosePeerConnection } from '../utils/webrtc';
 import { loadPairedDevices, savePairedDevices, upsertPairedDevice, updateDevicePairingCode, updateDeviceName } from '../utils/deviceStorage';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://141.148.184.72:5000';
 
 function Dashboard({ onLogout }) {
   const [devices, setDevices] = useState([]);

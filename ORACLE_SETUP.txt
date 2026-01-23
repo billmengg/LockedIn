@@ -1,0 +1,80 @@
+Oracle Cloud (Always-On) Setup
+
+Goal
+Host the backend 24/7 on Oracle Cloud Free Tier.
+
+Overview
+You will create a free VM, install Node.js, upload the backend, and run it with PM2.
+
+Step-by-step
+1) Create the Oracle Cloud account
+   - Sign up for Oracle Cloud Free Tier.
+   - Complete identity verification and login.
+
+2) Create a free VM (Compute Instance)
+   - Go to Compute → Instances → Create instance.
+   - Name: accountability-backend
+   - Image: Ubuntu 22.04 (or latest Ubuntu)
+   - Shape: VM.Standard.E2.1.Micro (always-free)
+   - SSH Keys: generate a key pair and download the private key.
+   - Click Create.
+
+3) Open the firewall (Oracle VCN Security List)
+   - Go to Networking → Virtual Cloud Networks.
+   - Open the VCN created with the VM.
+   - Open the Security List for the public subnet.
+   - Add Ingress rule:
+     - Source CIDR: 0.0.0.0/0
+     - IP Protocol: TCP
+     - Destination Port Range: 5000
+   - Save changes.
+
+4) SSH into the VM
+   - From PowerShell on your PC:
+     ssh -i "C:\path\to\your\privatekey.key" ubuntu@<YOUR_VM_PUBLIC_IP>
+
+5) Install Node.js and PM2
+   - On the VM:
+     sudo apt update
+     sudo apt install -y nodejs npm
+     sudo npm install -g pm2
+
+6) Upload the backend
+   Option A: Git clone (recommended)
+   - On your PC, push your repo to GitHub (already done).
+   - On the VM:
+     git clone https://github.com/billmengg/LockedIn.git
+     cd LockedIn/backend
+
+   Option B: SCP upload (if you prefer)
+   - On your PC:
+     scp -i "C:\path\to\your\privatekey.key" -r .\backend ubuntu@<YOUR_VM_PUBLIC_IP>:~/backend
+     ssh -i "C:\path\to\your\privatekey.key" ubuntu@<YOUR_VM_PUBLIC_IP>
+     cd ~/backend
+
+7) Install and run the backend
+   - On the VM:
+     npm install
+     export JWT_SECRET="your-strong-secret"
+     pm2 start server.js --name accountability-backend
+     pm2 save
+
+8) Make PM2 start on boot
+   - On the VM:
+     pm2 startup
+   - It will print a command. Copy and run that command.
+
+9) Test the backend
+   - From your PC:
+     http://<YOUR_VM_PUBLIC_IP>:5000/
+   - You should see the JSON status response.
+
+10) Point your apps to the new backend
+   - Child agent: SERVER_URL=http://<YOUR_VM_PUBLIC_IP>:5000
+   - Parent app: REACT_APP_API_URL=http://<YOUR_VM_PUBLIC_IP>:5000
+
+Notes
+- Free tier VMs can be reclaimed if idle for a long time.
+- For HTTPS, you can add a reverse proxy (Nginx) and a free TLS cert.
+- If you want, I can automate the install steps or add HTTPS.
+
