@@ -7,6 +7,8 @@ OutputDir=..\installer\out
 OutputBaseFilename=AccountabilityAgentSetup
 Compression=lzma
 SolidCompression=yes
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 
 [Files]
 Source: "..\child-agent\publish\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion

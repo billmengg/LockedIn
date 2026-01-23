@@ -9,6 +9,7 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
+  maxHttpBufferSize: 10 * 1024 * 1024, // allow larger JPEG data URLs
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
@@ -224,6 +225,7 @@ function authenticateToken(req, res, next) {
 // WebSocket signaling
 const deviceSockets = new Map();
 const parentSockets = new Map();
+const frameLogState = new Map();
 const getParentEmailForDevice = (deviceId) => {
   for (const [email, pairedDeviceId] of pairings.entries()) {
     if (pairedDeviceId === deviceId) return email;
@@ -461,6 +463,10 @@ io.on('connection', (socket) => {
     const parentSocket = parentSockets.get(parentEmail);
     if (!parentSocket) return;
 
+    if (!frameLogState.has(deviceId)) {
+      frameLogState.set(deviceId, true);
+      console.log(`[frame] receiving frames device=${deviceId} size=${dataUrl.length}`);
+    }
     parentSocket.emit('frame', { deviceId, dataUrl });
   });
 

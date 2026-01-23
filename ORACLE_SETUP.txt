@@ -31,7 +31,7 @@ Step-by-step
 
 4) SSH into the VM
    - From PowerShell on your PC:
-     ssh -i "C:\path\to\your\privatekey.key" ubuntu@<YOUR_VM_PUBLIC_IP>
+     ssh -i "C:\Users\William\Downloads\ssh-key-2026-01-23.key" ubuntu@141.148.184.72
 
 5) Install Node.js and PM2
    - On the VM:
@@ -70,8 +70,8 @@ Step-by-step
    - You should see the JSON status response.
 
 10) Point your apps to the new backend
-   - Child agent: SERVER_URL=http://<YOUR_VM_PUBLIC_IP>:5000
-   - Parent app: REACT_APP_API_URL=http://<YOUR_VM_PUBLIC_IP>:5000
+   - Child agent: SERVER_URL=http://141.148.184.72>:5000
+   - Parent app: REACT_APP_API_URL=http://141.148.184.72:5000
 
 Notes
 - Free tier VMs can be reclaimed if idle for a long time.
