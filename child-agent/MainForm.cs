@@ -28,6 +28,7 @@ namespace AccountabilityAgent
         private WebRtcService? webRtcService;
         private int _webrtcFrameCounter = 0;
         private bool socketFrameFallbackEnabled = true;
+        private bool loggedSocketFrameSend = false;
         private string serverUrl = "http://141.148.184.72:5000";
 
         public MainForm(bool minimized)
@@ -760,11 +761,13 @@ namespace AccountabilityAgent
                     {
                         using (var ms = new MemoryStream())
                         {
+                            // Downscale to reduce payload size on low-power servers
+                            using var resized = DownscaleBitmap(bitmap, 1280, 720);
                             var jpegCodec = ImageCodecInfo.GetImageDecoders()
                                 .First(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
                             var encoderParams = new EncoderParameters(1);
-                            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 50L);
-                            bitmap.Save(ms, jpegCodec, encoderParams);
+                            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 40L);
+                            resized.Save(ms, jpegCodec, encoderParams);
                             var bytes = ms.ToArray();
                             var base64 = Convert.ToBase64String(bytes);
                             var dataUrl = $"data:image/jpeg;base64,{base64}";
@@ -778,7 +781,19 @@ namespace AccountabilityAgent
                             if ((!sent || webRtcService == null) && socketFrameFallbackEnabled && socketClient != null && socketClient.Connected)
                             {
                                 // Fallback: send frames via Socket.IO if data channel is unavailable
-                                socketClient.EmitAsync("frame", new { deviceId, dataUrl });
+                                try
+                                {
+                                    socketClient.EmitAsync("frame", new { deviceId, dataUrl });
+                                    if (!loggedSocketFrameSend)
+                                    {
+                                        loggedSocketFrameSend = true;
+                                        Console.WriteLine($"Socket frame send started size={dataUrl.Length} deviceId={deviceId}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Socket frame send failed: {ex.Message}");
+                                }
                             }
                         }
                     }
@@ -797,6 +812,32 @@ namespace AccountabilityAgent
                 // Dispose bitmap on error
                 bitmap?.Dispose();
             }
+        }
+
+        private static Bitmap DownscaleBitmap(Bitmap source, int maxWidth, int maxHeight)
+        {
+            if (source.Width <= maxWidth && source.Height <= maxHeight)
+            {
+                return (Bitmap)source.Clone();
+            }
+
+            var widthRatio = (double)maxWidth / source.Width;
+            var heightRatio = (double)maxHeight / source.Height;
+            var scale = Math.Min(widthRatio, heightRatio);
+
+            var targetWidth = Math.Max(1, (int)(source.Width * scale));
+            var targetHeight = Math.Max(1, (int)(source.Height * scale));
+
+            var resized = new Bitmap(targetWidth, targetHeight);
+            using (var graphics = Graphics.FromImage(resized))
+            {
+                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                graphics.DrawImage(source, 0, 0, targetWidth, targetHeight);
+            }
+
+            return resized;
         }
 
         private void OnCaptureError(object? sender, string error)
