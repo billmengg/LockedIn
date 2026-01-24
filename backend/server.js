@@ -225,6 +225,7 @@ function authenticateToken(req, res, next) {
 // WebSocket signaling
 const deviceSockets = new Map();
 const parentSockets = new Map();
+const parentDeviceSockets = new Map();
 const frameLogState = new Map();
 const frameDropLogState = new Map();
 const framePingLogState = new Map();
@@ -299,6 +300,7 @@ io.on('connection', (socket) => {
       // Send paired device info
       const deviceId = pairings.get(decoded.email);
       if (deviceId) {
+        parentDeviceSockets.set(deviceId, socket);
         const device = devices.get(deviceId);
         if (device) {
           socket.emit('device-status', {
@@ -474,6 +476,16 @@ io.on('connection', (socket) => {
       return;
     }
 
+    const directParentSocket = parentDeviceSockets.get(deviceId);
+    if (directParentSocket) {
+      if (!frameLogState.has(deviceId)) {
+        frameLogState.set(deviceId, true);
+        console.log(`[frame] receiving frames device=${deviceId} size=${dataUrl.length}`);
+      }
+      directParentSocket.emit('frame', { deviceId, dataUrl });
+      return;
+    }
+
     const parentEmail = getParentEmailForDevice(deviceId);
     if (!parentEmail) {
       if (!frameDropLogState.has(`${deviceId}:noparent`)) {
@@ -545,7 +557,20 @@ io.on('connection', (socket) => {
       if (device.socketId === socket.id) {
         device.online = false;
         deviceSockets.delete(deviceId);
+        parentDeviceSockets.delete(deviceId);
         break;
+      }
+    }
+
+    for (const [email, parentSocket] of parentSockets.entries()) {
+      if (parentSocket.id === socket.id) {
+        parentSockets.delete(email);
+      }
+    }
+
+    for (const [deviceId, parentSocket] of parentDeviceSockets.entries()) {
+      if (parentSocket.id === socket.id) {
+        parentDeviceSockets.delete(deviceId);
       }
     }
   });
