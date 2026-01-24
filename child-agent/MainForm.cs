@@ -795,11 +795,11 @@ namespace AccountabilityAgent
                         using (var ms = new MemoryStream())
                         {
                             // Downscale to reduce payload size on low-power servers
-                            using var resized = DownscaleBitmap(bitmap, 1280, 720);
+                            using var resized = DownscaleBitmap(bitmap, 640, 360);
                             var jpegCodec = ImageCodecInfo.GetImageDecoders()
                                 .First(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
                             var encoderParams = new EncoderParameters(1);
-                            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 40L);
+                            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 30L);
                             resized.Save(ms, jpegCodec, encoderParams);
                             var bytes = ms.ToArray();
                             var base64 = Convert.ToBase64String(bytes);
@@ -843,6 +843,14 @@ namespace AccountabilityAgent
                                         else if (socketFrameSendCount % 10 == 0)
                                         {
                                             Console.WriteLine($"Socket frame send count={socketFrameSendCount} size={dataUrl.Length}");
+                                        }
+
+                                        if (socketFrameSendCount % 30 == 0)
+                                        {
+                                            _ = Task.Run(async () =>
+                                            {
+                                                await socketClient.EmitAsync("frame-test", new { deviceId, size = dataUrl.Length });
+                                            });
                                         }
                                     }
                                 }

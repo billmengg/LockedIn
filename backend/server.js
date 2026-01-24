@@ -500,6 +500,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('frame-test', (data) => {
+    const deviceId = data?.deviceId;
+    if (!deviceId) return;
+    if (!framePingLogState.has(`${deviceId}:test`)) {
+      framePingLogState.set(`${deviceId}:test`, true);
+      console.log(`[frame] test received device=${deviceId} size=${data?.size ?? 'unknown'}`);
+    }
+  });
+
   socket.on('generate-pairing-code', (deviceId) => {
     const device = devices.get(deviceId);
     if (device) {
