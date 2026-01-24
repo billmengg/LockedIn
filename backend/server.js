@@ -456,8 +456,15 @@ io.on('connection', (socket) => {
 
   // Frame relay fallback (JPEG data URLs over Socket.IO)
   socket.on('frame', (data) => {
-    const { deviceId, dataUrl } = data || {};
-    if (!deviceId || !dataUrl) return;
+    const payload = Array.isArray(data) ? data[0] : data;
+    const { deviceId, dataUrl } = payload || {};
+    if (!deviceId || !dataUrl) {
+      if (!frameDropLogState.has('invalid-payload')) {
+        frameDropLogState.set('invalid-payload', true);
+        console.log(`[frame] drop invalid payload type=${typeof data} array=${Array.isArray(data)}`);
+      }
+      return;
+    }
 
     const parentEmail = getParentEmailForDevice(deviceId);
     if (!parentEmail) {
