@@ -227,6 +227,7 @@ const deviceSockets = new Map();
 const parentSockets = new Map();
 const frameLogState = new Map();
 const frameDropLogState = new Map();
+const framePingLogState = new Map();
 const getParentEmailForDevice = (deviceId) => {
   for (const [email, pairedDeviceId] of pairings.entries()) {
     if (pairedDeviceId === deviceId) return email;
@@ -481,6 +482,15 @@ io.on('connection', (socket) => {
       console.log(`[frame] receiving frames device=${deviceId} size=${dataUrl.length}`);
     }
     parentSocket.emit('frame', { deviceId, dataUrl });
+  });
+
+  socket.on('frame-ping', (data) => {
+    const deviceId = data?.deviceId;
+    if (!deviceId) return;
+    if (!framePingLogState.has(deviceId)) {
+      framePingLogState.set(deviceId, true);
+      console.log(`[frame] ping received device=${deviceId} status=${data?.status ?? 'unknown'}`);
+    }
   });
 
   socket.on('generate-pairing-code', (deviceId) => {

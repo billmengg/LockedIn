@@ -29,6 +29,7 @@ namespace AccountabilityAgent
         private int _webrtcFrameCounter = 0;
         private bool socketFrameFallbackEnabled = true;
         private bool loggedSocketFrameSend = false;
+        private int socketFrameSendCount = 0;
         private string serverUrl = "http://141.148.184.72:5000";
 
         public MainForm(bool minimized)
@@ -334,6 +335,25 @@ namespace AccountabilityAgent
                     options.Reconnection = true;
                     options.ReconnectionDelay = 1000;
                     options.ReconnectionDelayMax = 5000;
+                    try
+                    {
+                        var transportEnum = socketIOClientAssembly.GetType("SocketIOClient.Transport.TransportProtocol");
+                        var transportProp = optionsType.GetProperty("Transport");
+                        if (transportEnum != null && transportProp != null)
+                        {
+                            var pollingValue = Enum.Parse(transportEnum, "Polling");
+                            transportProp.SetValue(options, pollingValue);
+                            Console.WriteLine("SocketIO transport set to Polling");
+                        }
+                        else
+                        {
+                            Console.WriteLine("SocketIO transport property not found; using default transport");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to set SocketIO transport: {ex.Message}");
+                    }
                     
                     // Create SocketIO instance
                     socketClient = Activator.CreateInstance(socketIOType, serverUrl, options);
@@ -683,6 +703,19 @@ namespace AccountabilityAgent
                 Console.WriteLine("Starting screen capture...");
                 await StartScreenCapture();
                 Console.WriteLine("Screen capture started successfully");
+
+                // Emit a small ping so backend can confirm it receives child events
+                if (socketClient != null && socketClient.Connected)
+                {
+                    try
+                    {
+                        await socketClient.EmitAsync("frame-ping", new { deviceId, status = "stream-started" });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Frame ping failed: {ex.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -778,16 +811,39 @@ namespace AccountabilityAgent
                                 sent = webRtcService.SendFrame(dataUrl);
                             }
 
-                            if ((!sent || webRtcService == null) && socketFrameFallbackEnabled && socketClient != null && socketClient.Connected)
+                            if ((!sent || webRtcService == null) && socketFrameFallbackEnabled && socketClient != null)
                             {
                                 // Fallback: send frames via Socket.IO if data channel is unavailable
                                 try
                                 {
-                                    socketClient.EmitAsync("frame", new { deviceId, dataUrl });
-                                    if (!loggedSocketFrameSend)
+                                    if (!socketClient.Connected)
                                     {
-                                        loggedSocketFrameSend = true;
-                                        Console.WriteLine($"Socket frame send started size={dataUrl.Length} deviceId={deviceId}");
+                                        if (socketFrameSendCount % 30 == 0)
+                                        {
+                                            Console.WriteLine("Socket frame send skipped: socket not connected");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var sendTask = socketClient.EmitAsync("frame", new { deviceId, dataUrl });
+                                        sendTask.ContinueWith(task =>
+                                        {
+                                            if (task.IsFaulted && task.Exception != null)
+                                            {
+                                                Console.WriteLine($"Socket frame send error: {task.Exception.GetBaseException().Message}");
+                                            }
+                                        });
+
+                                        socketFrameSendCount++;
+                                        if (!loggedSocketFrameSend)
+                                        {
+                                            loggedSocketFrameSend = true;
+                                            Console.WriteLine($"Socket frame send started size={dataUrl.Length} deviceId={deviceId}");
+                                        }
+                                        else if (socketFrameSendCount % 10 == 0)
+                                        {
+                                            Console.WriteLine($"Socket frame send count={socketFrameSendCount} size={dataUrl.Length}");
+                                        }
                                     }
                                 }
                                 catch (Exception ex)
