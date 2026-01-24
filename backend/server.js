@@ -237,6 +237,14 @@ const getParentEmailForDevice = (deviceId) => {
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
+  const seenEvents = new Set();
+  socket.onAny((event, ...args) => {
+    if (event.startsWith('frame') && !seenEvents.has(event)) {
+      seenEvents.add(event);
+      const payloadType = args[0] === undefined ? 'undefined' : Array.isArray(args[0]) ? 'array' : typeof args[0];
+      console.log(`[socket] event=${event} payloadType=${payloadType} socketId=${socket.id}`);
+    }
+  });
 
   socket.on('register-device', (payload) => {
     const deviceId = typeof payload === 'string' ? payload : payload?.deviceId;

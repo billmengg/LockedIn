@@ -30,6 +30,7 @@ namespace AccountabilityAgent
         private bool socketFrameFallbackEnabled = true;
         private bool loggedSocketFrameSend = false;
         private int socketFrameSendCount = 0;
+        private bool loggedFrameTinySend = false;
         private string serverUrl = "http://141.148.184.72:5000";
 
         public MainForm(bool minimized)
@@ -787,8 +788,8 @@ namespace AccountabilityAgent
                     }
                 }
 
-                // Send frame over WebRTC data channel at ~2 FPS (every 5th frame)
-                if (_webrtcFrameCounter++ % 5 == 0)
+                // Send frame over WebRTC/data channel at a low rate to limit payload size
+                if (_webrtcFrameCounter++ % 10 == 0)
                 {
                     try
                     {
@@ -851,6 +852,20 @@ namespace AccountabilityAgent
                                             {
                                                 await socketClient.EmitAsync("frame-test", new { deviceId, size = dataUrl.Length });
                                             });
+                                        }
+
+                                        if (!loggedFrameTinySend)
+                                        {
+                                            loggedFrameTinySend = true;
+                                            _ = Task.Run(async () =>
+                                            {
+                                                await socketClient.EmitAsync("frame", new
+                                                {
+                                                    deviceId,
+                                                    dataUrl = "data:image/jpeg;base64,AA=="
+                                                });
+                                            });
+                                            Console.WriteLine("Sent tiny test frame payload");
                                         }
                                     }
                                 }
