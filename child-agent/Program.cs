@@ -21,6 +21,7 @@ namespace AccountabilityAgent
             // Allocate console only for debug mode
             string[] args = Environment.GetCommandLineArgs();
             bool minimized = args.Length > 1 && args[1] == "/minimized";
+            bool backgroundMode = !args.Any(a => a.Equals("/ui", StringComparison.OrdinalIgnoreCase));
             bool debugMode = args.Any(a => a.Equals("/debug", StringComparison.OrdinalIgnoreCase)) ||
                              Environment.GetEnvironmentVariable("ACCOUNTABILITY_DEBUG") == "1";
 
@@ -61,7 +62,7 @@ namespace AccountabilityAgent
                 }
             };
             
-            Application.Run(new MainForm(minimized));
+            Application.Run(new MainForm(minimized, backgroundMode));
         }
         
         private static Assembly? CurrentDomain_AssemblyResolve(object? sender, ResolveEventArgs args)

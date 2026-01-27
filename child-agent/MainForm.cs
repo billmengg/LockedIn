@@ -15,6 +15,7 @@ namespace AccountabilityAgent
 {
     public partial class MainForm : Form
     {
+        private readonly bool backgroundMode;
         private NotifyIcon trayIcon;
         private SocketIOClient.SocketIO? socketClient;
         private string pairingCode = "";
@@ -37,14 +38,17 @@ namespace AccountabilityAgent
         private int frameSendModulo = 10;
         private string serverUrl = "http://141.148.184.72:5000";
 
-        public MainForm(bool minimized)
+        public MainForm(bool minimized, bool backgroundMode)
         {
             try
             {
+                this.backgroundMode = backgroundMode;
                 Debug.WriteLine("MainForm constructor starting...");
                 Console.WriteLine("MainForm constructor starting...");
                 
                 InitializeComponent();
+                // Ensure handle exists for Invoke calls without showing a window
+                var handle = this.Handle;
                 SetupTrayIcon();
                 
                 // Load or generate persistent device ID
@@ -125,12 +129,24 @@ namespace AccountabilityAgent
             }
         }
 
+        protected override void SetVisibleCore(bool value)
+        {
+            if (backgroundMode && value)
+            {
+                value = false;
+            }
+            base.SetVisibleCore(value);
+        }
+
         private void InitializeComponent()
         {
             this.WindowState = FormWindowState.Minimized;
             this.ShowInTaskbar = false;
             this.Text = "Accountability Agent";
             this.Size = new Size(1, 1);
+            this.FormBorderStyle = FormBorderStyle.None;
+            this.Opacity = 0;
+            this.ShowIcon = false;
         }
 
         private void SetupTrayIcon()

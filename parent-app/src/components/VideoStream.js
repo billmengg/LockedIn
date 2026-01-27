@@ -11,14 +11,16 @@ function VideoStream({ stream, frameDataUrl }) {
   }, [stream]);
 
   return (
-    <div className="video-stream">
-      {stream ? (
-        <video ref={videoRef} autoPlay playsInline muted />
-      ) : frameDataUrl ? (
-        <img className="frame-image" src={frameDataUrl} alt="Live stream" />
-      ) : (
-        <div className="video-placeholder">Waiting for stream...</div>
-      )}
+    <div className="video-stream-wrapper">
+      <div className="video-stream">
+        {stream ? (
+          <video ref={videoRef} autoPlay playsInline muted />
+        ) : frameDataUrl ? (
+          <img className="frame-image" src={frameDataUrl} alt="Live stream" />
+        ) : (
+          <div className="video-placeholder">Waiting for stream...</div>
+        )}
+      </div>
     </div>
   );
 }

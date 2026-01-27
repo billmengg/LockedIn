@@ -587,6 +587,14 @@ io.on('connection', (socket) => {
 
     for (const [email, parentSocket] of parentSockets.entries()) {
       if (parentSocket.id === socket.id) {
+        const deviceId = pairings.get(email);
+        if (deviceId) {
+          const deviceSocket = deviceSockets.get(deviceId);
+          if (deviceSocket) {
+            console.log(`[stream] auto-stop parent-disconnect parent=${email} device=${deviceId}`);
+            deviceSocket.emit('stop-stream');
+          }
+        }
         parentSockets.delete(email);
       }
     }

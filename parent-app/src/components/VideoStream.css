@@ -1,6 +1,13 @@
+.video-stream-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .video-stream {
   width: 100%;
-  max-width: 720px;
+  max-width: 100%;
+  min-width: 320px;
   aspect-ratio: 16 / 9;
   background: #000;
   border-radius: 8px;
