@@ -445,6 +445,29 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('stream-settings', (data) => {
+    const { token, width, height, fps } = data || {};
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const deviceId = pairings.get(decoded.email);
+      if (!deviceId) {
+        socket.emit('error', { message: 'No paired device' });
+        return;
+      }
+
+      const deviceSocket = deviceSockets.get(deviceId);
+      if (!deviceSocket) {
+        socket.emit('error', { message: 'Device offline' });
+        return;
+      }
+
+      deviceSocket.emit('stream-settings', { width, height, fps });
+      console.log(`[stream] settings parent=${decoded.email} device=${deviceId} ${width}x${height}@${fps}`);
+    } catch (err) {
+      socket.emit('error', { message: 'Invalid token' });
+    }
+  });
+
   socket.on('stop-stream', (data) => {
     const { token } = data;
     

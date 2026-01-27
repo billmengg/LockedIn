@@ -22,8 +22,17 @@ function Dashboard({ onLogout }) {
   const [reconnectTarget, setReconnectTarget] = useState(null);
   const [pairedConfirmed, setPairedConfirmed] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+  const [resolutionIndex, setResolutionIndex] = useState(1);
+  const [fpsIndex, setFpsIndex] = useState(3);
   const socketRef = useRef(null);
   const pcRef = useRef(null);
+  const resolutionOptions = [
+    { label: '144p', width: 256, height: 144 },
+    { label: '360p', width: 640, height: 360 },
+    { label: '720p', width: 1280, height: 720 },
+    { label: '1080p', width: 1920, height: 1080 },
+  ];
+  const fpsOptions = [0.1, 0.2, 0.5, 1, 2, 5];
 
   useEffect(() => {
     const cachedDevices = loadPairedDevices();
@@ -145,6 +154,20 @@ function Dashboard({ onLogout }) {
     return socket;
   };
 
+  const emitStreamSettings = () => {
+    const token = getToken();
+    const socket = socketRef.current;
+    const resolution = resolutionOptions[resolutionIndex];
+    const fps = fpsOptions[fpsIndex];
+    if (!socket || !socket.connected || !resolution) return;
+    socket.emit('stream-settings', {
+      token,
+      width: resolution.width,
+      height: resolution.height,
+      fps,
+    });
+  };
+
   const handlePair = async () => {
     if (!pairingCode || pairingCode.length !== 6) {
       alert('Please enter a valid 6-digit pairing code');
@@ -236,6 +259,7 @@ function Dashboard({ onLogout }) {
 
       pcRef.current = pc;
       setStreaming(true);
+      emitStreamSettings();
 
       const offer = await pc.createOffer({
         offerToReceiveVideo: true,
@@ -257,6 +281,12 @@ function Dashboard({ onLogout }) {
       setStreaming(false);
     }
   };
+
+  useEffect(() => {
+    if (streaming) {
+      emitStreamSettings();
+    }
+  }, [resolutionIndex, fpsIndex, streaming]);
 
   const handleStopStream = () => {
     const token = getToken();
@@ -368,6 +398,32 @@ function Dashboard({ onLogout }) {
 
                     {device.online && pairedConfirmed && (
                       <div className="stream-controls">
+                        <div className="stream-settings">
+                          <label>
+                            Resolution: {resolutionOptions[resolutionIndex]?.label}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max={resolutionOptions.length - 1}
+                            step="1"
+                            value={resolutionIndex}
+                            onChange={(e) => setResolutionIndex(Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="stream-settings">
+                          <label>
+                            FPS: {fpsOptions[fpsIndex]}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max={fpsOptions.length - 1}
+                            step="1"
+                            value={fpsIndex}
+                            onChange={(e) => setFpsIndex(Number(e.target.value))}
+                          />
+                        </div>
                         <button 
                           onClick={handleViewScreen} 
                           className="view-button"

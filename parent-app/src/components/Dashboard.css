@@ -114,6 +114,23 @@
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.stream-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 160px;
+}
+
+.stream-settings label {
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.stream-settings input[type="range"] {
+  width: 160px;
 }
 
 .socket-status {

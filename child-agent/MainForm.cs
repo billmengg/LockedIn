@@ -31,6 +31,10 @@ namespace AccountabilityAgent
         private bool loggedSocketFrameSend = false;
         private int socketFrameSendCount = 0;
         private bool loggedFrameTinySend = false;
+        private int targetWidth = 640;
+        private int targetHeight = 360;
+        private double targetFps = 1.0;
+        private int frameSendModulo = 10;
         private string serverUrl = "http://141.148.184.72:5000";
 
         public MainForm(bool minimized)
@@ -438,6 +442,36 @@ namespace AccountabilityAgent
                     StopStreaming();
                 });
 
+                socketClient.On("stream-settings", response =>
+                {
+                    try
+                    {
+                        var data = response.GetValue<System.Text.Json.JsonElement>();
+                        if (data.ValueKind == System.Text.Json.JsonValueKind.Object)
+                        {
+                            if (data.TryGetProperty("width", out var widthElement) && widthElement.TryGetInt32(out var width))
+                            {
+                                targetWidth = Math.Max(160, width);
+                            }
+                            if (data.TryGetProperty("height", out var heightElement) && heightElement.TryGetInt32(out var height))
+                            {
+                                targetHeight = Math.Max(90, height);
+                            }
+                            if (data.TryGetProperty("fps", out var fpsElement) && fpsElement.TryGetDouble(out var fps))
+                            {
+                                targetFps = Math.Max(0.1, fps);
+                            }
+
+                            UpdateFrameSendInterval();
+                            Console.WriteLine($"Stream settings updated: {targetWidth}x{targetHeight} @ {targetFps} fps (send every {frameSendModulo} frames)");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to apply stream settings: {ex.Message}");
+                    }
+                });
+
                 socketClient.On("pairing-code", response =>
                 {
                     try
@@ -789,14 +823,14 @@ namespace AccountabilityAgent
                 }
 
                 // Send frame over WebRTC/data channel at a low rate to limit payload size
-                if (_webrtcFrameCounter++ % 10 == 0)
+                if (_webrtcFrameCounter++ % frameSendModulo == 0)
                 {
                     try
                     {
                         using (var ms = new MemoryStream())
                         {
                             // Downscale to reduce payload size on low-power servers
-                            using var resized = DownscaleBitmap(bitmap, 640, 360);
+                            using var resized = DownscaleBitmap(bitmap, targetWidth, targetHeight);
                             var jpegCodec = ImageCodecInfo.GetImageDecoders()
                                 .First(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
                             var encoderParams = new EncoderParameters(1);
@@ -917,6 +951,12 @@ namespace AccountabilityAgent
             }
 
             return resized;
+        }
+
+        private void UpdateFrameSendInterval()
+        {
+            const double captureFps = 10.0;
+            frameSendModulo = Math.Max(1, (int)Math.Round(captureFps / targetFps));
         }
 
         private void OnCaptureError(object? sender, string error)
