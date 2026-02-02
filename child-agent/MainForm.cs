@@ -595,8 +595,11 @@ namespace AccountabilityAgent
                                 if (chatForm != null && !chatForm.Visible)
                                 {
                                     chatForm.Show();
-                                    chatForm.BringToFront();
                                 }
+                                chatForm?.BringToFront();
+                                trayIcon.ShowBalloonTip(2000, "New message",
+                                    "You received a chat message.",
+                                    ToolTipIcon.Info);
                             });
                         }
                     }

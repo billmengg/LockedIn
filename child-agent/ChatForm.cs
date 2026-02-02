@@ -115,5 +115,17 @@ namespace AccountabilityAgent
             await sendMessageAsync(text);
             AddMessage("You", text);
         }
+
+        public void SetPinned(bool pinned)
+        {
+            if (InvokeRequired)
+            {
+                Invoke((MethodInvoker)(() => SetPinned(pinned)));
+                return;
+            }
+
+            pinCheckBox.Checked = pinned;
+            TopMost = pinned;
+        }
     }
 }
