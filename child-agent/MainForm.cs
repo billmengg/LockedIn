@@ -27,6 +27,7 @@ namespace AccountabilityAgent
         private int _framesCaptured = 0;
         private bool pairingCodeRequestPending = false;
         private WebRtcService? webRtcService;
+        private ChatForm? chatForm;
         private int _webrtcFrameCounter = 0;
         private bool socketFrameFallbackEnabled = true;
         private bool loggedSocketFrameSend = false;
@@ -166,6 +167,7 @@ namespace AccountabilityAgent
                 var contextMenu = new ContextMenuStrip();
                 contextMenu.Items.Add("View Status", null, (s, e) => ShowStatus());
                 contextMenu.Items.Add("Generate Pairing Code", null, (s, e) => GeneratePairingCode());
+                contextMenu.Items.Add("Open Chat", null, (s, e) => ShowChatWindow());
                 contextMenu.Items.Add("Exit", null, (s, e) => ExitApplication());
                 trayIcon.ContextMenuStrip = contextMenu;
                 trayIcon.DoubleClick += (s, e) => ShowStatus();
@@ -571,6 +573,39 @@ namespace AccountabilityAgent
                     }
                 });
 
+                socketClient.On("chat-message", response =>
+                {
+                    try
+                    {
+                        var data = response.GetValue<JsonElement>();
+                        if (data.ValueKind != JsonValueKind.Object) return;
+                        if (!data.TryGetProperty("from", out var fromElement)) return;
+                        if (!data.TryGetProperty("text", out var textElement)) return;
+
+                        var from = fromElement.GetString() ?? "parent";
+                        var text = textElement.GetString() ?? "";
+                        if (string.IsNullOrWhiteSpace(text)) return;
+
+                        if (from.Equals("parent", StringComparison.OrdinalIgnoreCase))
+                        {
+                            this.Invoke((MethodInvoker)delegate
+                            {
+                                EnsureChatForm();
+                                chatForm?.AddMessage("Parent", text);
+                                if (chatForm != null && !chatForm.Visible)
+                                {
+                                    chatForm.Show();
+                                    chatForm.BringToFront();
+                                }
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error handling chat-message: {ex.Message}");
+                    }
+                });
+
                 socketClient.On("webrtc-offer", async response =>
                 {
                     try
@@ -778,6 +813,43 @@ namespace AccountabilityAgent
                 // Don't crash - just log the error
                 MessageBox.Show($"Error processing stream request: {ex.Message}\n\nCheck console for details.", 
                     "Stream Request Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void EnsureChatForm()
+        {
+            if (chatForm != null && !chatForm.IsDisposed) return;
+            chatForm = new ChatForm(async (text) =>
+            {
+                if (socketClient == null || !socketClient.Connected) return;
+                try
+                {
+                    await socketClient.EmitAsync("chat-reply", new { deviceId, text });
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to send chat message: {ex.Message}");
+                }
+            });
+        }
+
+        private void ShowChatWindow()
+        {
+            try
+            {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    EnsureChatForm();
+                    if (chatForm != null)
+                    {
+                        chatForm.Show();
+                        chatForm.BringToFront();
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to show chat window: {ex.Message}");
             }
         }
 

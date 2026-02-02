@@ -18,6 +18,8 @@ function Dashboard({ onLogout }) {
   const [remoteStream, setRemoteStream] = useState(null);
   const [streamError, setStreamError] = useState('');
   const [remoteFrame, setRemoteFrame] = useState('');
+  const [chatMessages, setChatMessages] = useState({});
+  const [chatInput, setChatInput] = useState('');
   const [socketStatus, setSocketStatus] = useState('disconnected');
   const [reconnectTarget, setReconnectTarget] = useState(null);
   const [pairedConfirmed, setPairedConfirmed] = useState(false);
@@ -148,6 +150,17 @@ function Dashboard({ onLogout }) {
       if (data?.dataUrl) {
         setRemoteFrame(data.dataUrl);
       }
+    });
+
+    socket.on('chat-message', (data) => {
+      if (!data?.deviceId || !data?.text) return;
+      setChatMessages((prev) => {
+        const existing = prev[data.deviceId] || [];
+        return {
+          ...prev,
+          [data.deviceId]: [...existing, data]
+        };
+      });
     });
 
     socketRef.current = socket;
@@ -301,6 +314,19 @@ function Dashboard({ onLogout }) {
     setStreaming(false);
   };
 
+  const handleSendChat = () => {
+    const text = chatInput.trim();
+    if (!text || !selectedDeviceId) return;
+    const token = getToken();
+    const socket = socketRef.current;
+    if (!socket || !socket.connected) {
+      setStreamError('Socket not connected. Try refreshing the page.');
+      return;
+    }
+    socket.emit('chat-send', { token, deviceId: selectedDeviceId, text });
+    setChatInput('');
+  };
+
   const handleRename = (deviceId, name) => {
     const updated = updateDeviceName(deviceId, name);
     setDevices(updated);
@@ -309,6 +335,7 @@ function Dashboard({ onLogout }) {
   const handleSelectDevice = (deviceId) => {
     setSelectedDeviceId(deviceId);
     setStreamError('');
+    setChatInput('');
   };
 
   const handleBackToList = () => {
@@ -469,7 +496,46 @@ function Dashboard({ onLogout }) {
                       <div className="error">{streamError}</div>
                     )}
                     {device.online && (
-                      <VideoStream stream={remoteStream} frameDataUrl={remoteFrame} />
+                      <div className="stream-layout">
+                        <div className="stream-area">
+                          <VideoStream stream={remoteStream} frameDataUrl={remoteFrame} />
+                        </div>
+                        <div className="chat-panel">
+                          <div className="chat-header">Chat</div>
+                          <div className="chat-messages">
+                            {(chatMessages[device.id] || []).map((message, index) => (
+                              <div
+                                key={`${message.timestamp || 't'}-${index}`}
+                                className={`chat-message ${message.from === 'parent' ? 'from-parent' : 'from-child'}`}
+                              >
+                                <div className="chat-sender">
+                                  {message.from === 'parent' ? 'You' : 'Child'}
+                                </div>
+                                <div className="chat-text">{message.text}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="chat-input">
+                            <input
+                              type="text"
+                              placeholder={device.online ? 'Type a message...' : 'Device offline'}
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSendChat();
+                              }}
+                              disabled={!device.online}
+                            />
+                            <button
+                              onClick={handleSendChat}
+                              className="primary-button"
+                              disabled={!device.online || !chatInput.trim()}
+                            >
+                              Send
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}

@@ -235,6 +235,12 @@ const getParentEmailForDevice = (deviceId) => {
   }
   return null;
 };
+const getDeviceIdForSocket = (socketId) => {
+  for (const [deviceId, device] of devices.entries()) {
+    if (device.socketId === socketId) return deviceId;
+  }
+  return null;
+};
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -443,6 +449,65 @@ io.on('connection', (socket) => {
     } catch (err) {
       socket.emit('error', { message: 'Invalid token' });
     }
+  });
+
+  socket.on('chat-send', (data) => {
+    const { token, deviceId: requestedDeviceId, text } = data || {};
+    if (!text || !text.trim()) return;
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const pairedDeviceId = pairings.get(decoded.email);
+      if (!pairedDeviceId) {
+        socket.emit('error', { message: 'No paired device' });
+        return;
+      }
+      if (requestedDeviceId && requestedDeviceId !== pairedDeviceId) {
+        socket.emit('error', { message: 'Device mismatch' });
+        return;
+      }
+      const deviceSocket = deviceSockets.get(pairedDeviceId);
+      if (!deviceSocket) {
+        socket.emit('error', { message: 'Device offline' });
+        return;
+      }
+      const payload = {
+        deviceId: pairedDeviceId,
+        from: 'parent',
+        text: text.trim(),
+        timestamp: Date.now()
+      };
+      deviceSocket.emit('chat-message', payload);
+      socket.emit('chat-message', payload);
+    } catch (err) {
+      socket.emit('error', { message: 'Invalid token' });
+    }
+  });
+
+  socket.on('chat-reply', (data) => {
+    const { deviceId, text } = data || {};
+    if (!deviceId || !text || !text.trim()) return;
+    const socketDeviceId = getDeviceIdForSocket(socket.id);
+    if (!socketDeviceId || socketDeviceId !== deviceId) {
+      socket.emit('error', { message: 'Invalid device' });
+      return;
+    }
+    const parentEmail = getParentEmailForDevice(deviceId);
+    if (!parentEmail) {
+      socket.emit('error', { message: 'No paired parent' });
+      return;
+    }
+    const parentSocket = parentSockets.get(parentEmail);
+    if (!parentSocket) {
+      socket.emit('error', { message: 'Parent offline' });
+      return;
+    }
+    const payload = {
+      deviceId,
+      from: 'child',
+      text: text.trim(),
+      timestamp: Date.now()
+    };
+    parentSocket.emit('chat-message', payload);
   });
 
   socket.on('stream-settings', (data) => {
