@@ -457,6 +457,7 @@ io.on('connection', (socket) => {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       const pairedDeviceId = pairings.get(decoded.email);
+      console.log(`[chat] parent=${decoded.email} target=${requestedDeviceId || pairedDeviceId} textLen=${text.trim().length}`);
       if (!pairedDeviceId) {
         socket.emit('error', { message: 'No paired device' });
         return;
@@ -487,6 +488,7 @@ io.on('connection', (socket) => {
     const { deviceId, text } = data || {};
     if (!deviceId || !text || !text.trim()) return;
     const socketDeviceId = getDeviceIdForSocket(socket.id);
+    console.log(`[chat] child=${socketDeviceId || 'unknown'} target=${deviceId} textLen=${text.trim().length}`);
     if (!socketDeviceId || socketDeviceId !== deviceId) {
       socket.emit('error', { message: 'Invalid device' });
       return;

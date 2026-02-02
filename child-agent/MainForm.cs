@@ -171,6 +171,7 @@ namespace AccountabilityAgent
                 contextMenu.Items.Add("Exit", null, (s, e) => ExitApplication());
                 trayIcon.ContextMenuStrip = contextMenu;
                 trayIcon.DoubleClick += (s, e) => ShowStatus();
+                trayIcon.BalloonTipClicked += (s, e) => ShowChatWindow();
                 
                 Debug.WriteLine($"Tray icon created. Visible={trayIcon.Visible}, Text={trayIcon.Text}");
                 Console.WriteLine($"Tray icon created. Visible={trayIcon.Visible}");
@@ -588,7 +589,7 @@ namespace AccountabilityAgent
 
                         if (from.Equals("parent", StringComparison.OrdinalIgnoreCase))
                         {
-                            this.Invoke((MethodInvoker)delegate
+                        this.Invoke((System.Windows.Forms.MethodInvoker)delegate
                             {
                                 EnsureChatForm();
                                 chatForm?.AddMessage("Parent", text);
@@ -597,8 +598,8 @@ namespace AccountabilityAgent
                                     chatForm.Show();
                                 }
                                 chatForm?.BringToFront();
-                                trayIcon.ShowBalloonTip(2000, "New message",
-                                    "You received a chat message.",
+                                trayIcon.ShowBalloonTip(2000, "Parent message",
+                                    "New message received. Click to open chat.",
                                     ToolTipIcon.Info);
                             });
                         }
@@ -840,7 +841,7 @@ namespace AccountabilityAgent
         {
             try
             {
-                this.Invoke((MethodInvoker)delegate
+                this.Invoke((System.Windows.Forms.MethodInvoker)delegate
                 {
                     EnsureChatForm();
                     if (chatForm != null)
